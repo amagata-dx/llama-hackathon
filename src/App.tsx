@@ -8,7 +8,7 @@ export default function App() {
     return (
         <div>
             {/* Simple Navigation for Demo */}
-            <div className="fixed bottom-4 left-4 z-50 bg-white/80 backdrop-blur-sm p-2 rounded-lg shadow-lg border border-gray-200 flex space-x-2">
+            <div className="fixed bottom-4 right-4 z-50 bg-white/80 backdrop-blur-sm p-2 rounded-lg shadow-lg border border-gray-200 flex space-x-2">
                 <button
                     onClick={() => setCurrentApp('app1')}
                     className={`px-3 py-1 text-xs font-medium rounded ${currentApp === 'app1' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
