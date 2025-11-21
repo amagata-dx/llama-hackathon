@@ -12,7 +12,9 @@ import { sendChatMessage } from "@/lib/api"
 
 export default function AvatarChatApp() {
   const [isSpeaking, setIsSpeaking] = useState(false)
+  const [currentEmotion, setCurrentEmotion] = useState<"happy" | "sad" | "angry" | "surprised" | "neutral">("neutral")
   const { toast } = useToast()
+  console.log(currentEmotion)
 
   const { messages, isThinking, addUserMessage, addAssistantMessage, updateLastAssistantMessage } = useChatMessages()
 
@@ -21,7 +23,7 @@ export default function AvatarChatApp() {
       addUserMessage(text)
 
       try {
-        const assistantText = await sendChatMessage(
+        const result = await sendChatMessage(
           [
             ...messages,
             { role: "user", content: text },
@@ -40,7 +42,9 @@ export default function AvatarChatApp() {
         )
 
         // ストリーミング完了時に最終的なメッセージを設定
-        updateLastAssistantMessage(assistantText)
+        updateLastAssistantMessage(result.answer)
+        // emotionを更新
+        setCurrentEmotion(result.emotion)
       } catch (error) {
         console.error("Chat error:", error)
         toast({
@@ -76,8 +80,7 @@ export default function AvatarChatApp() {
         {/* Header */}
         <header className="bg-card border-b border-border px-6 py-4 shadow-sm">
           <div className="max-w-7xl mx-auto">
-            <h1 className="text-2xl font-bold text-foreground">AI アバターチャット</h1>
-            <p className="text-sm text-muted-foreground mt-1">音声でAIアシスタントと会話できます</p>
+            <h1 className="text-2xl font-bold text-foreground">ラマちゃん's ROOM</h1>
           </div>
         </header>
 
@@ -85,7 +88,7 @@ export default function AvatarChatApp() {
         <div className="flex-1 flex overflow-hidden">
           {/* Avatar Scene */}
           <div className="w-full lg:w-1/2 relative bg-gradient-to-br from-background via-background to-accent/5">
-            <AvatarScene isSpeaking={isSpeaking} isListening={isListening} isThinking={isThinking} />
+            <AvatarScene isSpeaking={isSpeaking} isListening={isListening} isThinking={isThinking} emotion={currentEmotion} />
 
             <MicControl
               isMicOn={isMicOn}

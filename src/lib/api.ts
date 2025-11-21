@@ -46,12 +46,22 @@ function getSystemPrompt(): string {
   return SYSTEM_PROMPT
 }
 
+interface StructuredResponse {
+  answer: string
+  emotion: "happy" | "sad" | "angry" | "surprised" | "neutral"
+}
+
+export interface ChatResult {
+  answer: string
+  emotion: "happy" | "sad" | "angry" | "surprised" | "neutral"
+}
+
 export async function sendChatMessage(
   messages: Message[],
   onChunk?: (content: string) => void,
   onDisplayStart?: () => void,
   onDisplayEnd?: () => void
-): Promise<string> {
+): Promise<ChatResult> {
   // システムプロンプトを取得
   const systemPrompt = getSystemPrompt()
   
@@ -61,125 +71,77 @@ export async function sendChatMessage(
     ...messages,
   ]
   
-  // 既存のAPI実装
+  // APIリクエスト
   const response = await fetch("https://api.sambanova.ai/v1/chat/completions", {
     method: "POST",
     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${import.meta.env.VITE_LLAMA_API_KEY}` },
     body: JSON.stringify({
-        "stream": true,
+        "stream": false,
         "model": "Llama-4-Maverick-17B-128E-Instruct",
         "messages": messagesWithSystem,
+        "response_format": { "type": "json_schema", "json_schema": { "name": "response", "schema": { "type": "object", "properties": { "answer": { "type": "string" }, "emotion": { "type": "string", "enum": ["happy", "sad", "angry", "surprised", "neutral"] } } } } },
     }),
   })
   
   if (!response.ok) {
     throw new Error("API request failed")
   }
-  
-  if (!response.body) {
-    throw new Error("Response body is null")
+
+  // レスポンスをパース
+  const data = await response.json() as ChatResponse
+  const content = data.choices[0]?.message?.content
+
+  if (!content) {
+    throw new Error("No content in response")
   }
 
-  const reader = response.body.getReader()
-  const decoder = new TextDecoder()
-  let fullContent = ""
-  let displayedContent = ""
-  let isStreamingComplete = false
+  // contentはJSON文字列なので、パースしてanswerとemotionを取得
+  let structuredResponse: StructuredResponse
+  try {
+    structuredResponse = JSON.parse(content) as StructuredResponse
+  } catch (e) {
+    throw new Error("Failed to parse structured response")
+  }
+
+  const fullContent = structuredResponse.answer
+  const emotion = structuredResponse.emotion
 
   // タイプライター効果: 読める速度で表示
   const charsPerInterval = 2 // 1回の更新で表示する文字数
   const intervalMs = 100 // 更新間隔（ミリ秒）
 
+  let displayedContent = ""
   let displayTimer: ReturnType<typeof setInterval> | null = null
-
   let isDisplayStarted = false
   let isDisplayEnded = false
 
-  const startDisplayLoop = () => {
-    if (displayTimer) return // 既に開始している
+  // 表示開始を通知
+  if (!isDisplayStarted) {
+    isDisplayStarted = true
+    onDisplayStart?.()
+  }
 
-    // 表示開始を通知
-    if (!isDisplayStarted) {
-      isDisplayStarted = true
-      onDisplayStart?.()
-    }
-
+  // タイプライター効果で表示
+  return new Promise((resolve) => {
     displayTimer = setInterval(() => {
       if (displayedContent.length < fullContent.length) {
         const remaining = fullContent.slice(displayedContent.length)
         const toDisplay = remaining.slice(0, charsPerInterval)
         displayedContent += toDisplay
         onChunk?.(displayedContent)
-      } else if (isStreamingComplete && displayTimer) {
-        // ストリーミング完了かつ表示も完了したらタイマーを停止
-        clearInterval(displayTimer)
-        displayTimer = null
+      } else {
+        // 表示完了
+        if (displayTimer) {
+          clearInterval(displayTimer)
+          displayTimer = null
+        }
         if (!isDisplayEnded) {
           isDisplayEnded = true
           onDisplayEnd?.()
         }
+        resolve({ answer: fullContent, emotion })
       }
     }, intervalMs)
-  }
-
-  try {
-    // ストリーミングデータの受信
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) {
-        isStreamingComplete = true
-        break
-      }
-
-      const chunk = decoder.decode(value, { stream: true })
-      const lines = chunk.split("\n")
-
-      for (const line of lines) {
-        if (line.startsWith("data: ")) {
-          const data = line.slice(6)
-          if (data === "[DONE]") {
-            isStreamingComplete = true
-            continue
-          }
-
-          try {
-            const parsed = JSON.parse(data) as ChatResponse
-            const content = parsed.choices[0]?.delta?.content || parsed.choices[0]?.message?.content || ""
-            if (content) {
-              fullContent += content
-              // 表示ループを開始（まだ開始していない場合）
-              startDisplayLoop()
-            }
-          } catch (e) {
-            // JSON parse error, skip this line
-          }
-        }
-      }
-    }
-
-    // ストリーミング完了後、残りのコンテンツを表示するまで待機
-    while (displayedContent.length < fullContent.length) {
-      await new Promise((resolve) => setTimeout(resolve, intervalMs))
-    }
-
-    // 最終的な完全なコンテンツを保証
-    if (displayedContent !== fullContent) {
-      displayedContent = fullContent
-      onChunk?.(fullContent)
-    }
-
-    // 表示が完了したことを通知（まだ通知していない場合）
-    if (isDisplayStarted && !isDisplayEnded) {
-      isDisplayEnded = true
-      onDisplayEnd?.()
-    }
-  } finally {
-    if (displayTimer) {
-      clearInterval(displayTimer)
-    }
-    reader.releaseLock()
-  }
-
-  return fullContent
+  })
 }
 

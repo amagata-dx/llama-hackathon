@@ -104,25 +104,25 @@ function WelcomeMessage() {
       <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-6 overflow-hidden">
         <img src="/llama.png" alt="AIアシスタント" className="w-full h-full object-cover" />
       </div>
-      <h2 className="text-2xl font-bold text-foreground mb-4">ようこそ</h2>
+      <h2 className="text-2xl font-bold text-foreground mb-4">ラマちゃんとの会話ルール</h2>
       <div className="text-left max-w-md mx-auto space-y-3 text-muted-foreground">
         <div className="flex items-start gap-3">
           <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-xs font-bold text-primary">1</span>
+            <span className="font-bold text-primary">1</span>
           </div>
-          <p className="text-sm">マイクボタンをクリックして音声入力を開始</p>
+          <p className="text-sm">マイクボタンをクリックするラマ</p>
         </div>
         <div className="flex items-start gap-3">
           <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-xs font-bold text-primary">2</span>
+            <span className="font-bold text-primary">2</span>
           </div>
-          <p className="text-sm">ラマちゃんに自由に話しかけてみましょう</p>
+          <p className="text-sm">ラマちゃんに自由に話しかけてラマ</p>
         </div>
         <div className="flex items-start gap-3">
           <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-0.5">
-            <span className="text-xs font-bold text-primary">3</span>
+            <span className="font-bold text-primary">3</span>
           </div>
-          <p className="text-sm">ラマちゃんが音声で返答します</p>
+          <p className="text-sm">ラマちゃんが全力で回答するラマ</p>
         </div>
       </div>
     </div>

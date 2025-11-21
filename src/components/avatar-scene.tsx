@@ -5,13 +5,16 @@ import * as THREE from "three"
 import { Badge } from "@/components/ui/badge"
 import { Loader2, Brain, Mic } from "lucide-react"
 
+type Emotion = "happy" | "sad" | "angry" | "surprised" | "neutral"
+
 interface AvatarSceneProps {
   isSpeaking: boolean
   isListening: boolean
   isThinking: boolean
+  emotion: Emotion
 }
 
-export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarSceneProps) {
+export function AvatarScene({ isSpeaking, isListening, isThinking, emotion }: AvatarSceneProps) {
   const mountRef = useRef<HTMLDivElement>(null)
   const sceneRef = useRef<THREE.Scene | null>(null)
   const avatarRef = useRef<THREE.Group | null>(null)
@@ -20,20 +23,22 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
   const rightEarRef = useRef<THREE.Group | null>(null)
   const leftEyeRef = useRef<THREE.Group | null>(null)
   const rightEyeRef = useRef<THREE.Group | null>(null)
+  const leftEyebrowRef = useRef<THREE.Mesh | null>(null)
+  const rightEyebrowRef = useRef<THREE.Mesh | null>(null)
   const snoutRef = useRef<THREE.Group | null>(null)
   const animationFrameRef = useRef<number | null>(null)
   const timeRef = useRef<number>(0)
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null)
   
-  const stateRef = useRef({ isSpeaking, isListening, isThinking })
-  const prevStateRef = useRef({ isSpeaking, isListening, isThinking })
+  const stateRef = useRef({ isSpeaking, isListening, isThinking, emotion })
+  const prevStateRef = useRef({ isSpeaking, isListening, isThinking, emotion })
 
   useEffect(() => {
-    stateRef.current = { isSpeaking, isListening, isThinking }
-  }, [isSpeaking, isListening, isThinking])
+    stateRef.current = { isSpeaking, isListening, isThinking, emotion }
+  }, [isSpeaking, isListening, isThinking, emotion])
 
   useEffect(() => {
-    prevStateRef.current = { isSpeaking, isListening, isThinking }
+    prevStateRef.current = { isSpeaking, isListening, isThinking, emotion }
   }, [])
 
   useEffect(() => {
@@ -90,6 +95,8 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
     rightEarRef.current = llamaFace.getObjectByName("rightEar") as THREE.Group
     leftEyeRef.current = llamaFace.getObjectByName("leftEye") as THREE.Group
     rightEyeRef.current = llamaFace.getObjectByName("rightEye") as THREE.Group
+    leftEyebrowRef.current = llamaFace.getObjectByName("leftEyebrow") as THREE.Mesh
+    rightEyebrowRef.current = llamaFace.getObjectByName("rightEyebrow") as THREE.Mesh
     snoutRef.current = llamaFace.getObjectByName("snout") as THREE.Group
 
     // Animation loop
@@ -105,7 +112,7 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
       lastTime = currentTime
       timeRef.current += deltaTime
 
-      const { isSpeaking, isListening, isThinking } = stateRef.current
+      const { isSpeaking, isListening, isThinking, emotion } = stateRef.current
       const prevState = prevStateRef.current
 
       // Reset eye position when conversation ends (isThinking or isSpeaking changes from true to false)
@@ -121,7 +128,7 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
       }
 
       // Update previous state
-      prevStateRef.current = { isSpeaking, isListening, isThinking }
+      prevStateRef.current = { isSpeaking, isListening, isThinking, emotion }
 
       if (avatarRef.current) {
         const time = timeRef.current
@@ -130,7 +137,69 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
         const rightEar = rightEarRef.current
         const leftEye = leftEyeRef.current
         const rightEye = rightEyeRef.current
+        const leftEyebrow = leftEyebrowRef.current
+        const rightEyebrow = rightEyebrowRef.current
         const snout = snoutRef.current
+
+        // Apply emotion-based eyebrow adjustments
+        const applyEmotionEyebrows = () => {
+          if (!leftEyebrow || !rightEyebrow) return
+
+          switch (emotion) {
+            case "happy":
+              // Happy: cheerful arched eyebrows (more expressive and joyful)
+              leftEyebrow.rotation.z = -0.55
+              leftEyebrow.position.y = 0.83
+              rightEyebrow.rotation.z = 0.55
+              rightEyebrow.position.y = 0.83
+              break
+            case "sad":
+              // Sad: lowered eyebrows (inner corners down)
+              leftEyebrow.rotation.z = 0.2
+              leftEyebrow.position.y = 0.72
+              rightEyebrow.rotation.z = -0.2
+              rightEyebrow.position.y = 0.72
+              break
+            case "angry":
+              // Angry: raised eyebrows
+              leftEyebrow.rotation.z = -0.4
+              leftEyebrow.position.y = 0.80
+              rightEyebrow.rotation.z = 0.4
+              rightEyebrow.position.y = 0.80
+              break
+            case "surprised":
+              // Surprised: very raised eyebrows
+              leftEyebrow.rotation.z = -0.5
+              leftEyebrow.position.y = 0.82
+              rightEyebrow.rotation.z = 0.5
+              rightEyebrow.position.y = 0.82
+              break
+            case "neutral":
+            default:
+              // Neutral: default position
+              leftEyebrow.rotation.z = -0.1
+              leftEyebrow.position.y = 0.75
+              rightEyebrow.rotation.z = 0.1
+              rightEyebrow.position.y = 0.75
+              break
+          }
+        }
+
+        // Apply emotion-based eye adjustments
+        const applyEmotionEyes = () => {
+          if (!leftEye || !rightEye) return
+
+          switch (emotion) {
+            case "surprised":
+              // Surprised: smaller eyes (squinting)
+              leftEye.scale.set(0.6, 0.6, 0.6)
+              rightEye.scale.set(0.6, 0.6, 0.6)
+              break
+            default:
+              // Other emotions: don't override state-based eye sizes
+              break
+          }
+        }
 
         // Gentle breathing
         const breathing = Math.sin(time * 1.5) * 0.02
@@ -188,6 +257,10 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
           if (leftEye) leftEye.scale.set(1.1, 1.1, 1.1)
           if (rightEye) rightEye.scale.set(1.1, 1.1, 1.1)
           
+          // Apply emotion-based eyebrows and eyes (overrides default speaking eyebrows/eyes)
+          applyEmotionEyebrows()
+          applyEmotionEyes()
+          
         } else if (isListening) {
           // Listening animation - attentive
           avatarRef.current.rotation.y = Math.sin(time * 1.2) * 0.08
@@ -206,6 +279,10 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
           // Eyes focused
           if (leftEye) leftEye.scale.set(1.05, 1.05, 1.05)
           if (rightEye) rightEye.scale.set(1.05, 1.05, 1.05)
+
+          // Apply emotion-based eyebrows and eyes
+          applyEmotionEyebrows()
+          applyEmotionEyes()
 
           // Occasional blink
           if (Math.floor(time * 2) % 5 === 0) {
@@ -243,6 +320,10 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
           if (snout) {
             snout.rotation.z = Math.sin(time * 0.5) * 0.08
           }
+
+          // Apply emotion-based eyebrows and eyes
+          applyEmotionEyebrows()
+          applyEmotionEyes()
           
         } else {
           // Idle animations
@@ -268,6 +349,10 @@ export function AvatarScene({ isSpeaking, isListening, isThinking }: AvatarScene
               if (rightEye && rightEye.children[0]) (rightEye.children[0] as THREE.Mesh).scale.y = blink
             }
           }
+
+          // Apply emotion-based eyebrows and eyes
+          applyEmotionEyebrows()
+          applyEmotionEyes()
         }
       }
 
@@ -480,6 +565,31 @@ function createCuteLlamaFace(): THREE.Group {
   
   face.add(rightEyeGroup)
 
+  // Eyebrows - positioned above the eyes
+  const eyebrowMaterial = new THREE.MeshStandardMaterial({
+    color: 0x1a1a1a,
+    roughness: 0.4,
+    metalness: 0.1,
+  })
+
+  // Left eyebrow
+  const leftEyebrowGeometry = new THREE.BoxGeometry(0.25, 0.02, 0.01)
+  const leftEyebrow = new THREE.Mesh(leftEyebrowGeometry, eyebrowMaterial)
+  leftEyebrow.position.set(-0.4, 0.75, 0.76)
+  leftEyebrow.rotation.z = -0.1 // Slight angle
+  leftEyebrow.castShadow = true
+  leftEyebrow.name = "leftEyebrow"
+  face.add(leftEyebrow)
+
+  // Right eyebrow
+  const rightEyebrowGeometry = new THREE.BoxGeometry(0.25, 0.02, 0.01)
+  const rightEyebrow = new THREE.Mesh(rightEyebrowGeometry, eyebrowMaterial)
+  rightEyebrow.position.set(0.4, 0.75, 0.76)
+  rightEyebrow.rotation.z = 0.1 // Slight angle (mirrored)
+  rightEyebrow.castShadow = true
+  rightEyebrow.name = "rightEyebrow"
+  face.add(rightEyebrow)
+
   // Snout group - positioned lower on the elongated face
   const snoutGroup = new THREE.Group()
   snoutGroup.position.set(0, 0.25, 0.65) // Adjusted position
@@ -501,7 +611,7 @@ function createCuteLlamaFace(): THREE.Group {
 
   // Vertical line from nose
   const noseLine = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.025, 0.025, 0.15, 8),
+    new THREE.CylinderGeometry(0.015, 0.015, 0.15, 8),
     darkMaterial
   )
   noseLine.position.set(0, -0.025, 0.35)
