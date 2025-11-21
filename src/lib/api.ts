@@ -1,9 +1,8 @@
 import type { Message } from "@/hooks/use-chat-messages"
+import { SYSTEM_PROMPT } from "./prompt";
 
-// 既存のAPI実装で使用していた型定義（コメントアウト）
-interface ChatRequest {
-  messages: Message[]
-}
+// APIリクエスト用のメッセージ型（システムロールを含む）
+type ApiMessage = Message | { role: "system"; content: string }
 
 interface ChatResponse {
   choices: Array<{
@@ -42,12 +41,26 @@ interface ChatResponse {
   }
 }
 
+// システムプロンプトを取得（環境変数から読み込む、デフォルト値あり）
+function getSystemPrompt(): string {
+  return SYSTEM_PROMPT
+}
+
 export async function sendChatMessage(
   messages: Message[],
   onChunk?: (content: string) => void,
   onDisplayStart?: () => void,
   onDisplayEnd?: () => void
 ): Promise<string> {
+  // システムプロンプトを取得
+  const systemPrompt = getSystemPrompt()
+  
+  // メッセージ配列の先頭にシステムプロンプトを追加
+  const messagesWithSystem: ApiMessage[] = [
+    { role: "system", content: systemPrompt },
+    ...messages,
+  ]
+  
   // 既存のAPI実装
   const response = await fetch("https://api.sambanova.ai/v1/chat/completions", {
     method: "POST",
@@ -55,7 +68,7 @@ export async function sendChatMessage(
     body: JSON.stringify({
         "stream": true,
         "model": "Llama-4-Maverick-17B-128E-Instruct",
-        "messages": messages as ChatRequest["messages"],
+        "messages": messagesWithSystem,
     }),
   })
   
