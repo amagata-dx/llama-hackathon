@@ -1,8 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRiskEngine } from './lib/RiskEngine';
 import { Dashboard } from './components/Dashboard';
 import { RiskDetailView } from './components/RiskDetailView';
 import { AlertNotification } from './components/AlertNotification';
+import { InterviewRecordView, type InterviewRecord } from './components/InterviewRecordView';
+import type { Action } from './lib/types';
 import { ShieldAlert } from 'lucide-react';
 
 export const App3Page: React.FC = () => {
@@ -15,6 +17,11 @@ export const App3Page: React.FC = () => {
         completeAction,
         isLoading
     } = useRiskEngine();
+
+    const [interviewState, setInterviewState] = useState<{
+        alertId: string;
+        actionId: string;
+    } | null>(null);
 
     // Demo Control: Trigger alert after 3 seconds
     useEffect(() => {
@@ -30,6 +37,25 @@ export const App3Page: React.FC = () => {
 
     const handleBackToDashboard = () => {
         setActiveAlert(null);
+        setInterviewState(null);
+    };
+
+    const handleStartInterview = (alertId: string, actionId: string) => {
+        setActiveAlert(alerts.find(a => a.id === alertId) || null);
+        setInterviewState({ alertId, actionId });
+    };
+
+    const handleSaveInterview = (record: InterviewRecord) => {
+        // 面談記録を保存（実際の実装ではAPIに送信）
+        console.log('Interview record saved:', record);
+        
+        // アクションを完了としてマーク
+        if (interviewState) {
+            completeAction(interviewState.alertId, record.actionId);
+        }
+        
+        // 面談画面を閉じて詳細画面に戻る
+        setInterviewState(null);
     };
 
     return (
@@ -66,11 +92,31 @@ export const App3Page: React.FC = () => {
                     </div>
                 )}
 
-                {activeAlert ? (
+                {interviewState && activeAlert ? (
+                    (() => {
+                        const action = activeAlert.actions.find(a => a.id === interviewState.actionId);
+                        if (!action) {
+                            return <RiskDetailView
+                                alert={activeAlert}
+                                onBack={handleBackToDashboard}
+                                onCompleteAction={(actionId) => completeAction(activeAlert.id, actionId)}
+                            />;
+                        }
+                        return (
+                            <InterviewRecordView
+                                alert={activeAlert}
+                                action={action}
+                                onBack={() => setInterviewState(null)}
+                                onSave={handleSaveInterview}
+                            />
+                        );
+                    })()
+                ) : activeAlert ? (
                     <RiskDetailView
                         alert={activeAlert}
                         onBack={handleBackToDashboard}
                         onCompleteAction={(actionId) => completeAction(activeAlert.id, actionId)}
+                        onStartInterview={handleStartInterview}
                     />
                 ) : (
                     <Dashboard

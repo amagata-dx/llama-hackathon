@@ -1,13 +1,15 @@
 import React from 'react';
 import type { Action } from '../lib/types';
 import { CheckCircle2, Circle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 interface ActionItemProps {
     action: Action;
     onComplete: () => void;
+    onStartInterview?: () => void;
 }
 
-export const ActionItem: React.FC<ActionItemProps> = ({ action, onComplete }) => {
+export const ActionItem: React.FC<ActionItemProps> = ({ action, onComplete, onStartInterview }) => {
     return (
         <div className={`flex items-start p-3 rounded-lg border ${action.completed ? 'bg-gray-50 border-gray-200' : 'bg-white border-gray-200 hover:border-blue-300 transition-colors'}`}>
             <button
@@ -18,23 +20,34 @@ export const ActionItem: React.FC<ActionItemProps> = ({ action, onComplete }) =>
                 {action.completed ? <CheckCircle2 className="h-5 w-5" /> : <Circle className="h-5 w-5" />}
             </button>
 
-            <div className="flex-1">
-                <p className={`text-sm ${action.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
-                    {action.text}
-                </p>
-                <div className="flex mt-1 space-x-2">
-                    <span className={`text-xs px-1.5 py-0.5 rounded ${action.priority === 'high' ? 'bg-red-100 text-red-700' :
-                        action.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                            'bg-blue-100 text-blue-700'
-                        }`}>
-                        {action.priority === 'high' ? '優先度：高' :
-                            action.priority === 'medium' ? '優先度：中' : '優先度：低'}
-                    </span>
-                    <span className="text-xs text-gray-400 px-1.5 py-0.5">
-                        {action.type === 'interview' ? '面談' :
-                            action.type === 'observation' ? '観察' : 'その他'}
-                    </span>
+            <div className="flex-1 flex items-center justify-between">
+                <div>
+                    <p className={`text-sm ${action.completed ? 'text-gray-500 line-through' : 'text-gray-800'}`}>
+                        {action.text}
+                    </p>
+                    <div className="flex mt-1 space-x-2">
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${action.priority === 'high' ? 'bg-red-100 text-red-700' :
+                            action.priority === 'medium' ? 'bg-yellow-100 text-yellow-700' :
+                                'bg-blue-100 text-blue-700'
+                            }`}>
+                            {action.priority === 'high' ? '優先度：高' :
+                                action.priority === 'medium' ? '優先度：中' : '優先度：低'}
+                        </span>
+                        <span className="text-xs text-gray-400 px-1.5 py-0.5">
+                            {action.type === 'interview' ? '面談' :
+                                action.type === 'observation' ? '観察' : 'その他'}
+                        </span>
+                    </div>
                 </div>
+                {action.type === 'interview' && !action.completed && (
+                    <Button
+                        onClick={onStartInterview || onComplete}
+                        size="sm"
+                        className="text-xs bg-blue-600 text-white hover:bg-blue-700 ml-4"
+                    >
+                        面談を実施
+                    </Button>
+                )}
             </div>
         </div>
     );
