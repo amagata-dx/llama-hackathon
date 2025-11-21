@@ -76,6 +76,7 @@ export function useSpeechRecognition(
   const [error, setError] = useState<string | null>(null)
 
   const recognitionRef = useRef<SpeechRecognitionType | null>(null)
+  const isListeningRef = useRef(false)
   const isSupported = typeof window !== 'undefined' &&
     ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window)
 
@@ -106,11 +107,15 @@ export function useSpeechRecognition(
       }
 
       if (finalTranscript) {
-        setTranscript(prev => prev + finalTranscript)
+        setTranscript(prev => {
+          const newTranscript = prev + finalTranscript
+          // onResultは最新の値で呼び出す
+          if (onResult) {
+            onResult(newTranscript)
+          }
+          return newTranscript
+        })
         setInterimTranscript('')
-        if (onResult) {
-          onResult(transcript + finalTranscript)
-        }
       } else {
         setInterimTranscript(tempInterimTranscript)
       }
@@ -122,8 +127,17 @@ export function useSpeechRecognition(
 
       switch (event.error) {
         case 'no-speech':
-          errorMessage = '音声が検出されませんでした'
-          break
+          // 無音検出エラーは無視して継続（一時停止と認識）
+          console.log('一時的な無音を検出しました。音声認識を継続します。')
+          // エラーとして扱わず、認識を再開
+          if (continuous && recognitionRef.current) {
+            try {
+              recognitionRef.current.start()
+            } catch (e) {
+              console.log('Already listening')
+            }
+          }
+          return // エラーメッセージを設定せずに早期リターン
         case 'audio-capture':
           errorMessage = 'マイクが使用できません'
           break
@@ -137,28 +151,50 @@ export function useSpeechRecognition(
 
       setError(errorMessage)
       setIsListening(false)
+      isListeningRef.current = false
     }
 
     recognition.onend = () => {
-      setIsListening(false)
-      if (onEnd) {
-        onEnd()
+      // continuous モードの場合、意図しない終了時は再開
+      if (continuous && isListeningRef.current) {
+        console.log('音声認識が終了しました。再開を試みます。')
+        try {
+          recognition.start()
+        } catch (e) {
+          console.log('音声認識の再開に失敗しました:', e)
+          setIsListening(false)
+          isListeningRef.current = false
+          if (onEnd) {
+            onEnd()
+          }
+        }
+      } else {
+        setIsListening(false)
+        isListeningRef.current = false
+        if (onEnd) {
+          onEnd()
+        }
       }
     }
 
     recognition.onstart = () => {
       setIsListening(true)
+      isListeningRef.current = true
       setError(null)
     }
 
     recognitionRef.current = recognition
 
     return () => {
-      if (recognitionRef.current && isListening) {
-        recognitionRef.current.stop()
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop()
+        } catch (e) {
+          console.log('音声認識の停止エラー:', e)
+        }
       }
     }
-  }, [continuous, interimResults, lang, onResult, onEnd, isSupported, transcript, isListening])
+  }, [continuous, interimResults, lang, onResult, onEnd, isSupported])
 
   const startListening = useCallback(() => {
     if (!isSupported) {
@@ -166,22 +202,25 @@ export function useSpeechRecognition(
       return
     }
 
-    if (recognitionRef.current && !isListening) {
+    if (recognitionRef.current && !isListeningRef.current) {
       try {
+        isListeningRef.current = true
         recognitionRef.current.start()
         setError(null)
       } catch (err) {
         console.error('Failed to start speech recognition:', err)
         setError('音声認識の開始に失敗しました')
+        isListeningRef.current = false
       }
     }
-  }, [isSupported, isListening])
+  }, [isSupported])
 
   const stopListening = useCallback(() => {
-    if (recognitionRef.current && isListening) {
+    if (recognitionRef.current && isListeningRef.current) {
+      isListeningRef.current = false
       recognitionRef.current.stop()
     }
-  }, [isListening])
+  }, [])
 
   const resetTranscript = useCallback(() => {
     setTranscript('')

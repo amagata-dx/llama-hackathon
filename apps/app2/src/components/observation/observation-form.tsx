@@ -72,18 +72,32 @@ export function ObservationForm({ onSubmit, isSubmitting = false }: ObservationF
 
   // 音声入力からテキストを受け取る
   const handleVoiceTranscript = async (transcript: string, blob?: Blob) => {
+    console.log('音声認識結果を受信:', transcript)
+
+    if (!transcript || !transcript.trim()) {
+      console.warn('空の音声認識結果を受信')
+      toast.error('音声認識結果が空です。もう一度お試しください。')
+      return
+    }
+
     setContentText(transcript)
     if (blob) {
       setAudioBlob(blob)
     }
+
+    // エラーをクリア（特に観察内容のエラー）
+    setErrors(prev => {
+      const newErrors = { ...prev }
+      delete newErrors.content
+      return newErrors
+    })
+
     // 音声入力後は手入力モードに戻す
     setUseVoiceInput(false)
     setIsFromVoiceInput(true)
 
-    // 音声入力後に自動でテキスト改善を実行
-    setTimeout(() => {
-      handleAiAnalysis(true) // テキスト改善を含む分析を実行
-    }, 500)
+    // 自動分析は実行せず、ユーザーがボタンを押すのを待つ
+    toast.info('音声入力が完了しました。必要に応じてAI分析ボタンを押してください。')
   }
 
   // AI分析の実行
@@ -164,6 +178,16 @@ export function ObservationForm({ onSubmit, isSubmitting = false }: ObservationF
   const handleUseImprovedText = (text: string) => {
     setContentText(text)
     setShowTextImprovement(false)
+
+    // 改善されたテキストを使用したらcontentのエラーをクリア
+    if (text.trim() && errors.content) {
+      setErrors(prev => {
+        const newErrors = { ...prev }
+        delete newErrors.content
+        return newErrors
+      })
+    }
+
     toast.success('改善されたテキストを適用しました')
   }
 
@@ -239,7 +263,17 @@ export function ObservationForm({ onSubmit, isSubmitting = false }: ObservationF
           <div>
             <StudentSelector
               selectedStudents={students}
-              onStudentsChange={setStudents}
+              onStudentsChange={(newStudents) => {
+                setStudents(newStudents)
+                // 生徒が選択されたらstudentsのエラーをクリア
+                if (newStudents.length > 0 && errors.students) {
+                  setErrors(prev => {
+                    const newErrors = { ...prev }
+                    delete newErrors.students
+                    return newErrors
+                  })
+                }
+              }}
               multiple={true}
               required={true}
             />
@@ -279,7 +313,17 @@ export function ObservationForm({ onSubmit, isSubmitting = false }: ObservationF
                   id="content"
                   placeholder="観察した内容を詳しく記入してください..."
                   value={contentText}
-                  onChange={(e) => setContentText(e.target.value)}
+                  onChange={(e) => {
+                    setContentText(e.target.value)
+                    // 入力があったらcontentのエラーをクリア
+                    if (e.target.value.trim() && errors.content) {
+                      setErrors(prev => {
+                        const newErrors = { ...prev }
+                        delete newErrors.content
+                        return newErrors
+                      })
+                    }
+                  }}
                   rows={4}
                   className="mt-1"
                   data-testid="observation-content"
@@ -302,49 +346,53 @@ export function ObservationForm({ onSubmit, isSubmitting = false }: ObservationF
             {/* AI分析ボタン */}
             {contentText && (
               <div className="mt-3 space-y-2">
-                {!isFromVoiceInput && (
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      onClick={() => handleAiAnalysis(false)}
-                      disabled={isAnalyzing}
-                      data-testid="ai-analyze-btn"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          AI分析中...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          AIで自動タグ付け
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAiAnalysis(true)}
-                      disabled={isAnalyzing}
-                      data-testid="ai-improve-btn"
-                    >
-                      {isAnalyzing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          処理中...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles className="h-4 w-4 mr-2" />
-                          テキスト整形
-                        </>
-                      )}
-                    </Button>
-                  </div>
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant={isFromVoiceInput ? "outline" : "secondary"}
+                    size="sm"
+                    onClick={() => handleAiAnalysis(false)}
+                    disabled={isAnalyzing}
+                    data-testid="ai-analyze-btn"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        AI分析中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        AIで自動タグ付け
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={isFromVoiceInput ? "secondary" : "outline"}
+                    size="sm"
+                    onClick={() => handleAiAnalysis(true)}
+                    disabled={isAnalyzing}
+                    data-testid="ai-improve-btn"
+                  >
+                    {isAnalyzing ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        処理中...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-4 w-4 mr-2" />
+                        テキスト整形
+                        {isFromVoiceInput && <span className="ml-1 text-xs">(推奨)</span>}
+                      </>
+                    )}
+                  </Button>
+                </div>
+                {isFromVoiceInput && !showAiSuggestions && (
+                  <p className="text-xs text-blue-600 flex items-center gap-1">
+                    💡 音声入力の場合は「テキスト整形」で句読点や文法を自動修正できます
+                  </p>
                 )}
                 {showAiSuggestions && aiAnalysis && (
                   <p className="text-xs text-green-600 flex items-center gap-1">

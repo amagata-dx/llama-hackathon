@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useVoiceRecording } from '@/hooks/use-voice-recording'
 import { useSpeechRecognition } from '@/hooks/use-speech-recognition'
+import { toast } from 'sonner'
 
 interface VoiceRecorderProps {
   onTranscriptComplete: (transcript: string, audioBlob?: Blob) => void
@@ -17,6 +18,7 @@ export function VoiceRecorder({
   placeholder = '観察内容を音声で入力...'
 }: VoiceRecorderProps) {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [hasSubmitted, setHasSubmitted] = useState(false)
 
   const {
     isRecording,
@@ -41,13 +43,42 @@ export function VoiceRecorder({
   } = useSpeechRecognition({
     continuous: true,
     interimResults: true,
-    lang: 'ja-JP',
-    onEnd: () => {
-      if (isRecording) {
-        stopRecording()
+    lang: 'ja-JP'
+    // onEndコールバックを削除 - 音声認識の終了で録音を止めない
+  })
+
+  // 録音停止時に自動で結果を送信
+  useEffect(() => {
+    if (!isRecording && !isListening && !hasSubmitted && !isProcessing) {
+      // 録音と認識が両方停止して、まだ送信していない場合
+
+      if (transcript && transcript.trim()) {
+        // transcriptがある場合は送信
+        console.log('録音終了・自動送信:', transcript)
+        const currentTranscript = transcript
+        const currentAudioBlob = audioBlob
+
+        setIsProcessing(true)
+        setHasSubmitted(true)
+
+        // 少し待ってから送信（音声認識の最終処理を待つ）
+        setTimeout(() => {
+          if (currentTranscript && currentTranscript.trim()) {
+            onTranscriptComplete(currentTranscript, currentAudioBlob || undefined)
+            toast.success('音声入力内容が反映されました')
+          } else {
+            toast.error('音声認識結果が空です。もう一度お試しください。')
+            setHasSubmitted(false)
+          }
+          setIsProcessing(false)
+        }, 500)
+      } else if (audioBlob) {
+        // 録音はされたが音声認識結果が無い場合
+        console.warn('音声認識結果が空')
+        toast.warning('音声が認識されませんでした。はっきりと話してもう一度お試しください。')
       }
     }
-  })
+  }, [isRecording, isListening, transcript, hasSubmitted, isProcessing, audioBlob, onTranscriptComplete])
 
   // 録音の開始/停止
   const handleToggleRecording = async () => {
@@ -55,19 +86,12 @@ export function VoiceRecorder({
       // 停止処理
       stopRecording()
       stopListening()
-      setIsProcessing(true)
-
-      // 少し待ってから文字起こし結果を送信
-      setTimeout(() => {
-        if (transcript) {
-          onTranscriptComplete(transcript, audioBlob || undefined)
-        }
-        setIsProcessing(false)
-      }, 500)
+      // useEffectで自動送信されるので、ここでは送信しない
     } else {
       // 開始処理
       resetTranscript()
       clearRecording()
+      setHasSubmitted(false) // 送信フラグをリセット
       await startRecording()
       startListening()
     }
@@ -77,14 +101,21 @@ export function VoiceRecorder({
   const handleRetry = () => {
     clearRecording()
     resetTranscript()
+    setHasSubmitted(false)
   }
 
-  // 文字起こし結果の確定
+  // 文字起こし結果の確定（手動送信）
   const handleConfirmTranscript = () => {
-    if (transcript) {
+    if (transcript && !hasSubmitted) {
+      console.log('手動で確定:', transcript)
       onTranscriptComplete(transcript, audioBlob || undefined)
-      clearRecording()
-      resetTranscript()
+      setHasSubmitted(true)
+      // 送信後にクリア
+      setTimeout(() => {
+        clearRecording()
+        resetTranscript()
+        setHasSubmitted(false)
+      }, 100)
     }
   }
 
@@ -167,7 +198,7 @@ export function VoiceRecorder({
               <span className="text-gray-900">{transcript}</span>
               <span className="text-gray-400">{interimTranscript}</span>
             </p>
-            {transcript && !isRecording && (
+            {transcript && !isRecording && !hasSubmitted && (
               <div className="flex gap-2 mt-3">
                 <Button
                   onClick={handleConfirmTranscript}
@@ -184,6 +215,11 @@ export function VoiceRecorder({
                   <RotateCcw className="w-4 h-4 mr-1" />
                   やり直す
                 </Button>
+              </div>
+            )}
+            {hasSubmitted && (
+              <div className="mt-3 text-sm text-green-600">
+                ✅ 音声入力内容が反映されました
               </div>
             )}
           </div>
