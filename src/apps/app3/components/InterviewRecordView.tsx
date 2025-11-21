@@ -3,6 +3,7 @@ import type { Alert, Action } from '../lib/types';
 import { ArrowLeft, Brain, Save, Sparkles, Video, Clock, CheckCircle2, Circle, Mic, VideoOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { getInterviewSuggestions } from '@/lib/api';
 
 interface InterviewRecordViewProps {
     alert: Alert;
@@ -117,7 +118,12 @@ export const InterviewRecordView: React.FC<InterviewRecordViewProps> = ({
 
             setIsLoadingSuggestions(true);
             try {
-                const result = await getInterviewSuggestions(alert, content);
+                const result = await getInterviewSuggestions(
+                    alert.level,
+                    alert.category,
+                    alert.studentName,
+                    content
+                );
                 setAiSuggestions(result.suggestions);
                 setCheckItems(result.checkItems);
             } catch (error) {
@@ -411,57 +417,4 @@ export const InterviewRecordView: React.FC<InterviewRecordViewProps> = ({
     );
 };
 
-// AIによる面談サポート提案を取得（モックデータ）
-async function getInterviewSuggestions(alert: Alert, _content: string): Promise<{
-    suggestions: string;
-    checkItems: CheckItem[];
-}> {
-    // モックデータ: 実際のAPI呼び出しの代わりにモックデータを返す
-    // 少し遅延を入れてリアルな動作をシミュレート
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // リスクレベルに応じたモックデータ
-    const mockCheckItems = alert.level === 'CRITICAL' || alert.level === 'HIGH' ? [
-        '保護者への連絡が必要か確認する',
-        '次回の面談日程を設定する',
-        '他の専門家（カウンセラー等）への相談を検討する',
-        '生徒の安全確認（身体的・精神的）を行う',
-        'クラス内での状況を継続的に観察する',
-        '緊急時の連絡体制を確認する'
-    ] : [
-        '次回の面談日程を設定する',
-        '保護者への連絡が必要か確認する',
-        'クラス内での状況を継続的に観察する',
-        '生徒の様子を記録し続ける',
-        '必要に応じて他の教員と情報共有する'
-    ];
-
-    const mockSuggestions = alert.level === 'CRITICAL' || alert.level === 'HIGH' 
-        ? `【重要】${alert.studentName}さんの状況は${alert.level}レベルです。以下の点に注意してください：
-
-1. 保護者への連絡を早急に検討してください
-2. 学校カウンセラーやスクールソーシャルワーカーへの相談を推奨します
-3. 次回の面談では、より具体的な支援策について話し合いましょう
-4. クラス内での状況を継続的に観察し、エスカレートしないよう注意が必要です
-
-面談記録を基に、適切な支援計画を立てることをお勧めします。`
-        : `${alert.studentName}さんの状況について、以下の点を考慮してください：
-
-1. 定期的な面談を継続し、信頼関係を築くことが重要です
-2. 保護者との連携を検討し、家庭での様子も確認しましょう
-3. クラス内での観察を継続し、変化に気づけるようにしましょう
-4. 必要に応じて他の教員とも情報共有を行い、包括的な支援を心がけましょう`;
-
-    // Convert checkItems to CheckItem format
-    const checkItems: CheckItem[] = mockCheckItems.map((item: string, index: number) => ({
-        id: `check-${Date.now()}-${index}`,
-        text: item,
-        checked: false
-    }));
-
-    return {
-        suggestions: mockSuggestions,
-        checkItems
-    };
-}
 
