@@ -22,7 +22,7 @@ Class Llama consists of multiple AI-powered applications designed to revolutioni
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/your-username/llama-hackathon.git
+git clone https://github.com/amagata-dx/llama-hackathon.git
 cd llama-hackathon
 ```
 
@@ -140,7 +140,6 @@ llama-hackathon/
 │       └── src/             # App2 source code
 ├── public/                  # Public static files
 ├── docs/                    # Documentation
-│   ├── japanese/           # Japanese documentation
 │   └── images/             # Screenshots and diagrams
 └── tests/                   # Test files (planned)
 ```
@@ -264,9 +263,7 @@ We welcome contributions! Please follow these guidelines:
 
 ## 📚 Documentation
 
-- [Japanese Documentation](./docs/japanese/) - 日本語の詳細ドキュメント
-- [API Documentation](./docs/API.md) - API integration details
-- [Component Documentation](./docs/COMPONENTS.md) - UI component library
+Comprehensive documentation is available in this README. For additional information, please check the `/docs` directory for implementation details and architecture diagrams.
 
 ## 🐛 Troubleshooting
 
@@ -310,7 +307,3 @@ Built with ❤️ for the LLaMa Hackathon by our dedicated team solving real edu
 ---
 
 📧 **Contact:** For questions or support, please open an issue on GitHub.
-
-🌐 **Demo:** [Live Demo Link](https://your-demo-url.com) (Coming soon)
-
-📹 **Video:** [Project Presentation](https://your-video-url.com) (Coming soon)
