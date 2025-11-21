@@ -7,9 +7,10 @@ interface RiskDetailViewProps {
     alert: Alert;
     onBack: () => void;
     onCompleteAction: (actionId: string) => void;
+    onStartInterview?: (alertId: string, actionId: string) => void;
 }
 
-export const RiskDetailView: React.FC<RiskDetailViewProps> = ({ alert, onBack, onCompleteAction }) => {
+export const RiskDetailView: React.FC<RiskDetailViewProps> = ({ alert, onBack, onCompleteAction, onStartInterview }) => {
     return (
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             {/* Header */}
@@ -73,6 +74,7 @@ export const RiskDetailView: React.FC<RiskDetailViewProps> = ({ alert, onBack, o
                                     key={action.id}
                                     action={action}
                                     onComplete={() => onCompleteAction(action.id)}
+                                    onStartInterview={onStartInterview ? () => onStartInterview(alert.id, action.id) : undefined}
                                 />
                             ))}
                         </div>
