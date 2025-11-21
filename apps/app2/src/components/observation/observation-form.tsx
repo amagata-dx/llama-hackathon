@@ -232,6 +232,10 @@ export function ObservationForm({ onSubmit, isSubmitting = false }: ObservationF
     }
 
     onSubmit(formData)
+
+    // 送信成功後、フォームをリセット
+    resetForm()
+    toast.success('観察記録を保存しました')
   }
 
   // フォームリセット
