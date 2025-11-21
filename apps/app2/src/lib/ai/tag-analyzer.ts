@@ -15,6 +15,10 @@ export interface AnalysisResult {
     suggestedActions: string[]
     confidence: number
   }
+  // テキスト改善フィールド
+  restructuredText?: string
+  summary?: string
+  originalText?: string
 }
 
 // カテゴリラベルのマッピング（日本語表示用）
@@ -41,7 +45,8 @@ const categoryColors: Record<ObservationType, string> = {
 export async function analyzeObservation(
   observationText: string,
   studentNames?: string[],
-  location?: string
+  location?: string,
+  includeTextImprovement: boolean = false
 ): Promise<AnalysisResult | null> {
   try {
     // プロバイダーマネージャーを使ってカスケード方式で分析
@@ -49,7 +54,8 @@ export async function analyzeObservation(
     const response = await providerManager.analyzeWithFallback(
       observationText,
       studentNames,
-      location
+      location,
+      includeTextImprovement
     )
 
     if (!response) {
@@ -68,7 +74,11 @@ export async function analyzeObservation(
         keywords: response.keywords,
         suggestedActions: response.suggestedActions,
         confidence: response.confidence
-      }
+      },
+      // テキスト改善フィールド
+      restructuredText: response.restructuredText,
+      summary: response.summary,
+      originalText: includeTextImprovement ? observationText : undefined
     }
 
     return result

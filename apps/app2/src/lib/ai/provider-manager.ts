@@ -51,10 +51,11 @@ export class AIProviderManager {
   private async trySambaNova(
     observationText: string,
     studentNames?: string[],
-    location?: string
+    location?: string,
+    includeTextImprovement: boolean = false
   ): Promise<ProviderResult> {
     try {
-      const messages = createAnalysisPrompt(observationText, studentNames, location)
+      const messages = createAnalysisPrompt(observationText, studentNames, location, includeTextImprovement)
       const response = await getStructuredResponse(messages)
 
       if (response) {
@@ -96,7 +97,8 @@ export class AIProviderManager {
   private async tryOllama(
     observationText: string,
     studentNames?: string[],
-    location?: string
+    location?: string,
+    includeTextImprovement: boolean = false
   ): Promise<ProviderResult> {
     try {
       // Ollamaの可用性をチェック
@@ -109,7 +111,7 @@ export class AIProviderManager {
         }
       }
 
-      const prompt = createOllamaAnalysisPrompt(observationText, studentNames, location)
+      const prompt = createOllamaAnalysisPrompt(observationText, studentNames, location, includeTextImprovement)
       const response = await callOllamaAPI(prompt)
 
       if (response) {
@@ -183,12 +185,13 @@ export class AIProviderManager {
   public async analyzeWithFallback(
     observationText: string,
     studentNames?: string[],
-    location?: string
+    location?: string,
+    includeTextImprovement: boolean = false
   ): Promise<TagAnalysisResponse | null> {
     console.log('Starting AI analysis with fallback...')
 
     // 1. SambaNovaを試行
-    const sambaResult = await this.trySambaNova(observationText, studentNames, location)
+    const sambaResult = await this.trySambaNova(observationText, studentNames, location, includeTextImprovement)
     if (sambaResult.success && sambaResult.data) {
       console.log('Analysis succeeded with SambaNova')
       return sambaResult.data
@@ -196,7 +199,7 @@ export class AIProviderManager {
     console.log('SambaNova failed:', sambaResult.error)
 
     // 2. Ollamaへフォールバック
-    const ollamaResult = await this.tryOllama(observationText, studentNames, location)
+    const ollamaResult = await this.tryOllama(observationText, studentNames, location, includeTextImprovement)
     if (ollamaResult.success && ollamaResult.data) {
       console.log('Analysis succeeded with Ollama (local)')
       toast.info('ローカルAIを使用して分析しました', {

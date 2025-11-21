@@ -34,6 +34,9 @@ export interface TagAnalysisResponse {
   keywords: string[]
   suggestedActions: string[]
   confidence: number
+  // テキスト改善フィールド
+  restructuredText?: string  // 整形されたテキスト
+  summary?: string           // 要約
 }
 
 // Llama APIを呼び出して、構造化されたレスポンスを取得
@@ -119,10 +122,12 @@ export async function getStructuredResponse(messages: LlamaMessage[]): Promise<T
 export function createAnalysisPrompt(
   observationText: string,
   studentNames?: string[],
-  location?: string
+  location?: string,
+  includeTextImprovement: boolean = false
 ): LlamaMessage[] {
   const systemPrompt = `あなたは教員の観察記録を分析する専門的なAIアシスタントです。
 観察記録の内容を分析し、適切なタグ付けと分類を行ってください。
+${includeTextImprovement ? 'また、音声入力されたテキストを整形し、要約も生成してください。' : ''}
 必ずJSON形式のみで応答してください。他の説明は不要です。
 
 カテゴリの定義:
@@ -137,7 +142,19 @@ export function createAnalysisPrompt(
 - urgent: 即座の対応が必要（いじめ、暴力、自傷行為など）
 - high: 早急な対応が望ましい
 - normal: 通常の観察記録
-- low: 経過観察で良い`
+- low: 経過観察で良い
+
+${includeTextImprovement ? `テキスト整形の基準:
+- 句読点を適切に追加
+- 文法的な誤りを修正
+- 論理的な流れに再構成
+- 冗長な表現を簡潔に
+- 専門用語を統一
+
+要約の基準:
+- WHO（誰が）、WHAT（何を）、WHEN（いつ）、WHERE（どこで）を明確に
+- 重要な懸念事項を含める
+- 3文以内で簡潔にまとめる` : ''}`
 
   const userPrompt = `以下の観察記録を分析してください。
 
@@ -156,7 +173,9 @@ ${location ? `場所: ${location}` : ''}
   "sentiment": 感情スコア（-1.0から1.0の数値、負は否定的、正は肯定的）,
   "keywords": ["重要なキーワード1", "キーワード2"],
   "suggestedActions": ["推奨される対応1", "対応2"],
-  "confidence": 分析の確信度（0.0から1.0の数値）
+  "confidence": 分析の確信度（0.0から1.0の数値）${includeTextImprovement ? `,
+  "restructuredText": "整形されたテキスト（句読点追加、文法修正、論理的な流れ）",
+  "summary": "要約（3文以内、重要なポイントのみ）"` : ''}
 }`
 
   return [

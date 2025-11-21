@@ -107,10 +107,12 @@ export async function callOllamaAPI(prompt: string): Promise<string | null> {
 export function createOllamaAnalysisPrompt(
   observationText: string,
   studentNames?: string[],
-  location?: string
+  location?: string,
+  includeTextImprovement: boolean = false
 ): string {
   // Ollama向けにシンプルで明確なプロンプト
   const prompt = `あなたは教員の観察記録を分析するAIです。以下の観察記録を分析して、JSON形式で結果を返してください。
+${includeTextImprovement ? '音声入力されたテキストを整形し、要約も生成してください。' : ''}
 
 観察記録: "${observationText}"
 ${studentNames && studentNames.length > 0 ? `対象生徒: ${studentNames.join(', ')}` : ''}
@@ -127,7 +129,9 @@ ${location ? `場所: ${location}` : ''}
   "sentiment": -1.0から1.0の数値,
   "keywords": ["キーワード1", "キーワード2"],
   "suggestedActions": ["推奨アクション1", "推奨アクション2"],
-  "confidence": 0.0から1.0の数値
+  "confidence": 0.0から1.0の数値${includeTextImprovement ? `,
+  "restructuredText": "整形されたテキスト（句読点追加、文法修正、論理的な流れ）",
+  "summary": "要約（3文以内）"` : ''}
 }
 
 カテゴリの意味:
@@ -142,7 +146,12 @@ ${location ? `場所: ${location}` : ''}
 - urgent: 即座の対応必要（いじめ、暴力など）
 - high: 早急な対応推奨
 - normal: 通常
-- low: 経過観察`
+- low: 経過観察${includeTextImprovement ? `
+
+テキスト整形:
+- 句読点を適切に追加
+- 文法修正と論理的な流れ
+- 冗長な表現を簡潔に` : ''}`
 
   return prompt
 }
