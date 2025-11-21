@@ -1,16 +1,43 @@
+
 import { useState, useCallback } from 'react';
 import type { Alert } from './types';
-import { MOCK_ALERT } from './mockData';
+import { MOCK_STUDENT_B, MOCK_ALERT } from './mockData';
+
+import { analyzeRiskWithLlama } from './llm';
 
 export function useRiskEngine() {
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const [activeAlert, setActiveAlert] = useState<Alert | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
     // Simulate receiving an alert (Scene 3)
-    const triggerScenarioAlert = useCallback(() => {
-        // In a real app, this would come from a websocket or polling
-        setAlerts([MOCK_ALERT]);
-        // Optionally auto-show the popup
+    const triggerScenarioAlert = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            // Scenario Data
+            const teacherInput = "朝のHRで機嫌が悪そう。机を蹴る仕草。最近部活でレギュラー落ちした影響かもしれない。要注意。";
+            const studentAgentReport = "休み時間に、BくんがCくんに強い口調で話しかけてて、周りが静かになっちゃって。ちょっと怖かった。";
+
+            const analysisResult = await analyzeRiskWithLlama(teacherInput, studentAgentReport);
+
+            const newAlert: Alert = {
+                id: `alert-${Date.now()}`,
+                studentId: MOCK_STUDENT_B.id,
+                studentName: MOCK_STUDENT_B.name,
+                ...analysisResult,
+                relatedAlerts: [],
+                timestamp: new Date(),
+                status: 'new',
+            };
+
+            setAlerts([newAlert]);
+        } catch (error) {
+            console.error("Failed to analyze risk:", error);
+            // Fallback to mock if API fails
+            setAlerts([MOCK_ALERT]);
+        } finally {
+            setIsLoading(false);
+        }
     }, []);
 
     const acknowledgeAlert = useCallback((alertId: string) => {
@@ -66,6 +93,8 @@ export function useRiskEngine() {
         setActiveAlert,
         triggerScenarioAlert,
         acknowledgeAlert,
-        completeAction
+        completeAction,
+        isLoading
     };
 }
+

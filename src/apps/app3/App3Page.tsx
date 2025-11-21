@@ -12,7 +12,8 @@ export const App3Page: React.FC = () => {
         setActiveAlert,
         triggerScenarioAlert,
         acknowledgeAlert,
-        completeAction
+        completeAction,
+        isLoading
     } = useRiskEngine();
 
     // Demo Control: Trigger alert after 3 seconds
@@ -56,6 +57,15 @@ export const App3Page: React.FC = () => {
 
             {/* Main Content */}
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                {isLoading && (
+                    <div className="fixed inset-0 bg-white/50 z-50 flex items-center justify-center backdrop-blur-sm">
+                        <div className="flex flex-col items-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+                            <p className="text-indigo-800 font-medium">AI分析中...</p>
+                        </div>
+                    </div>
+                )}
+
                 {activeAlert ? (
                     <RiskDetailView
                         alert={activeAlert}
