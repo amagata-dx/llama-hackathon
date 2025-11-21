@@ -37,6 +37,7 @@ Rules:
 - "evidences" should directly reference the input data.
 - "actions" should be concrete and actionable for a teacher.
 - Do not include any text outside the JSON block.
+- All text should be in Japanese
 `;
 
 export async function analyzeRiskWithLlama(
